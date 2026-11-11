@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f4efe6">
+<title>一瓷一品 · 绞胎纹生成</title>
+<style>
+  :root{
+    --ink:#1a1613;
+    --ink-2:#4b423a;
+    --mute:#8a7f72;
+    --paper:#f4efe6;
+    --line:#dcd2c4;
+    --accent:#8f2f22;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Songti SC","Source Han Serif SC","Noto Serif CJK SC","SimSun",serif;
+    -webkit-font-smoothing:antialiased;
+    line-height:1.7;
+  }
+  .wrap{max-width:600px;margin:0 auto;padding:26px 20px 60px}
+
+  .eyebrow{
+    font-size:11px;letter-spacing:.24em;color:var(--mute);
+    display:flex;justify-content:space-between;align-items:center;
+    border-bottom:1px solid var(--line);padding-bottom:9px;
+  }
+  h1{font-size:31px;font-weight:600;letter-spacing:.1em;margin:18px 0 6px;line-height:1.25}
+  h1 em{font-style:normal;color:var(--accent)}
+  .lede{font-size:13.5px;color:var(--ink-2);margin:0 0 18px;max-width:30em}
+  .lede b{font-weight:600;color:var(--ink)}
+
+  .stage{position:relative;margin:0 0 14px;background:#e9e2d6;border:1px solid var(--line)}
+  .stage canvas{display:block;width:100%;height:auto;aspect-ratio:1/1}
+  .tag{
+    position:absolute;left:10px;top:10px;
+    font-size:10px;letter-spacing:.14em;color:var(--ink);
+    background:rgba(251,247,240,.86);
+    padding:4px 7px;border:1px solid rgba(26,22,19,.12);
+  }
+  .busy{
+    position:absolute;inset:0;display:none;place-items:center;
+    background:rgba(244,239,230,.42);font-size:12px;letter-spacing:.2em;color:var(--ink-2);
+  }
+  .busy.on{display:grid}
+
+  .seg{display:flex;gap:7px;margin:0 0 14px;flex-wrap:wrap}
+  .seg button{
+    appearance:none;border:1px solid var(--line);background:transparent;
+    color:var(--ink-2);font-family:inherit;font-size:12.5px;letter-spacing:.06em;
+    padding:7px 13px;cursor:pointer;border-radius:1px;transition:.16s;
+  }
+  .seg button:hover{border-color:var(--ink-2)}
+  .seg button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+  .seg .icon{font-size:11px;opacity:.75;margin-right:3px}
+
+  .swatches{display:flex;gap:9px;margin:2px 0 18px;align-items:center;flex-wrap:wrap}
+  .sw{
+    width:32px;height:32px;border:1px solid var(--line);cursor:pointer;position:relative;
+    border-radius:50%;overflow:hidden;padding:0;background:none;flex:0 0 auto;
+  }
+  .sw i{display:block;width:100%;height:100%;
+    background:linear-gradient(135deg,var(--a) 0 50%,var(--b) 50% 100%)}
+  .sw[aria-pressed="true"]{box-shadow:0 0 0 2px var(--paper),0 0 0 3px var(--ink)}
+  .sw-note{font-size:11px;color:var(--mute);letter-spacing:.08em}
+
+  .ctrl{margin:0 0 15px}
+  .ctrl .row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1px}
+  .ctrl label{font-size:12.5px;letter-spacing:.1em;color:var(--ink-2)}
+  .ctrl output{font-size:11.5px;color:var(--mute);letter-spacing:.08em;font-variant-numeric:tabular-nums}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;margin:0;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--line)}
+  input[type=range]::-moz-range-track{height:1px;background:var(--line)}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:11px;height:11px;background:var(--ink);
+    margin-top:-5px;border-radius:50%;border:2px solid var(--paper);
+    box-shadow:0 0 0 1px var(--ink);
+  }
+  input[type=range]::-moz-range-thumb{
+    width:9px;height:9px;background:var(--ink);border:2px solid var(--paper);border-radius:50%;
+  }
+
+  .actions{display:flex;gap:9px;margin:20px 0 6px}
+  .btn{
+    flex:1;appearance:none;font-family:inherit;font-size:13.5px;letter-spacing:.14em;
+    padding:12px 10px;border:1px solid var(--ink);background:transparent;color:var(--ink);
+    cursor:pointer;border-radius:1px;transition:.18s;white-space:nowrap;
+  }
+  .btn:hover{background:rgba(26,22,19,.05)}
+  .btn.primary{background:var(--ink);color:var(--paper)}
+  .btn.primary:hover{background:#2c2621}
+  .btn.mini{flex:0 0 auto;border-color:var(--line);color:var(--ink-2);font-size:12px;padding:7px 12px;letter-spacing:.06em}
+
+  .meta{
+    display:flex;justify-content:space-between;gap:12px;
+    font-size:11.5px;color:var(--mute);letter-spacing:.08em;
+    border-top:1px solid var(--line);margin-top:22px;padding-top:11px;
+  }
+  .note{font-size:11.5px;color:var(--mute);line-height:1.85;margin:16px 0 0;letter-spacing:.03em}
+  .note b{color:var(--ink-2);font-weight:600}
+
+  .sheet{
+    position:fixed;inset:0;background:rgba(26,22,19,.66);display:none;
+    align-items:center;justify-content:center;padding:18px;z-index:20;
+  }
+  .sheet.on{display:flex}
+  .sheet-inner{max-width:min(92vw,400px);width:100%;text-align:center}
+  .sheet img{width:100%;display:block;box-shadow:0 18px 50px rgba(0,0,0,.35)}
+  .sheet .hint{color:#f4efe6;font-size:11.5px;letter-spacing:.14em;margin:12px 0 0}
+  .sheet .close{
+    position:absolute;right:14px;top:10px;color:#f4efe6;background:none;border:0;
+    font-size:24px;line-height:1;cursor:pointer;padding:10px;font-family:inherit;
+  }
+  .sheet .dl{
+    display:inline-block;margin-top:10px;color:#f4efe6;font-size:12.5px;letter-spacing:.14em;
+    border-bottom:1px solid rgba(244,239,230,.6);text-decoration:none;padding-bottom:2px;
+  }
+  .hidden{display:none!important}
+  @media (max-width:380px){
+    h1{font-size:27px}
+    .wrap{padding:20px 15px 48px}
+    .sw{width:29px;height:29px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">
+    <span>当阳峪 · 绞胎瓷</span>
+    <span>河南 · 修武</span>
+  </div>
+
+  <h1>一瓷一品<em>。</em></h1>
+  <p class="lede">两种泥叠起来，绞，揉，切一刀——<b>这一刀，只出这一条纹</b>。调几个数，揉出你自己的那条。</p>
+
+  <div class="stage">
+    <canvas id="view" width="560" height="560" aria-label="绞胎纹样"></canvas>
+    <div class="tag" id="tag">切片 · 折纹</div>
+    <div class="busy" id="busy">揉 泥 中 …</div>
+  </div>
+
+  <div class="seg" role="group" aria-label="绞法">
+    <button data-style="fold" aria-pressed="true">折纹</button>
+    <button data-style="swirl" aria-pressed="false">旋纹</button>
+    <button data-style="weave" aria-pressed="false">编织</button>
+    <button data-style="random" aria-pressed="false"><span class="icon">✦</span>随窑</button>
+  </div>
+
+  <div class="swatches" id="swatches">
+    <button class="sw" data-pair="0" aria-pressed="true" style="--a:#1c1815;--b:#efeadf" title="墨白"><i></i></button>
+    <button class="sw" data-pair="1" aria-pressed="false" style="--a:#7c3b23;--b:#e8ded0" title="赭石"><i></i></button>
+    <button class="sw" data-pair="2" aria-pressed="false" style="--a:#20303c;--b:#e4e7e2" title="窑变"><i></i></button>
+    <button class="sw" data-pair="3" aria-pressed="false" style="--a:#3d5a4c;--b:#eae6d8" title="青瓷"><i></i></button>
+    <button class="sw" data-pair="4" aria-pressed="false" style="--a:#4a2f3c;--b:#e9e0d6" title="茄紫"><i></i></button>
+    <button class="btn mini" id="pick">从照片取色</button>
+    <input type="file" id="file" accept="image/*" class="hidden">
+  </div>
+
+  <div class="ctrl">
+    <div class="row"><label for="foldN">绞揉</label><output id="foldNo">3 次</output></div>
+    <input type="range" id="foldN" min="1" max="5" step="1" value="3">
+  </div>
+  <div class="ctrl">
+    <div class="row"><label for="twist">扭转</label><output id="twistO">50°</output></div>
+    <input type="range" id="twist" min="0" max="100" step="1" value="50">
+  </div>
+  <div class="ctrl">
+    <div class="row"><label for="dens">纹样密度</label><output id="densO">26</output></div>
+    <input type="range" id="dens" min="10" max="44" step="1" value="26">
+  </div>
+
+  <div class="actions">
+    <button class="btn primary" id="again">再揉一次</button>
+    <button class="btn" id="vessel">看瓶身</button>
+    <button class="btn" id="poster">存海报</button>
+  </div>
+
+  <div class="meta">
+    <span id="serial">编号 DJY—</span>
+    <span id="kind">折纹 · 3 次绞揉</span>
+  </div>
+
+  <p class="note">
+    <b>这不是实物。</b>页面里的纹，是按绞胎的“叠合—绞揉—切片”写的一段算法：两种泥的颜色、绞揉的次数、扭转的角度、纹样的密度，决定了这一条纹。真实的绞胎，纹在胎里，切开的每一刀都一样，一瓷一品，不可复制。
+  </p>
+  <p class="note">
+    <b>当阳峪绞胎瓷：</b>源于唐，兴于宋，北宋窑址就在焦作修武当阳峪；靖康之后技艺中断近千年，2002 年才恢复烧制，存世宋代名品不足 60 件。<br>
+    本页图形为 AI 生成示意，非实物照片；可自由用于课程与比赛展示。
+  </p>
+</div>
+
+<div class="sheet" id="sheet">
+  <button class="close" id="close" aria-label="关闭">×</button>
+  <div class="sheet-inner">
+    <img id="posterImg" alt="你的绞胎纹海报">
+    <p class="hint">长按图片保存</p>
+    <a class="dl" id="dl" download>下载图片</a>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- 常量 ---------- */
+  var PAIRS = [
+    {a:"#1c1815", b:"#efeadf"},
+    {a:"#7c3b23", b:"#e8ded0"},
+    {a:"#20303c", b:"#e4e7e2"},
+    {a:"#3d5a4c", b:"#eae6d8"},
+    {a:"#4a2f3c", b:"#e9e0d6"}
+  ];
+  var STYLES = ["fold","swirl","weave"];
+  var SIZE = 560;
+
+  var S = {
+    style:"fold",
+    pair:0,
+    folds:3,
+    twist:50,
+    dens:26,
+    seed:Math.random()*1000,
+    vessel:false
+  };
+
+  /* ---------- 三角/正余弦查表 ---------- */
+  var TBL = new Float32Array(4096);
+  for(var t0=0;t0<4096;t0++) TBL[t0] = Math.sin(t0/4096*Math.PI*2);
+  function sinT(turns){ return TBL[(turns*4096) & 4095]; }
+  function cosT(turns){ return TBL[((turns+0.25)*4096) & 4095]; }
+
+  /* ---------- 颜色 ---------- */
+  function hex2rgb(h){
+    h = h.replace("#","");
+    return [parseInt(h.substr(0,2),16), parseInt(h.substr(2,2),16), parseInt(h.substr(4,2),16)];
+  }
+  function rgb2hex(c){
+    var s = "#";
+    for(var i=0;i<3;i++){
+      var v = Math.max(0,Math.min(255,Math.round(c[i])));
+      s += (v<16?"0":"") + v.toString(16);
+    }
+    return s;
+  }
+  function lum(c){ return 0.299*c[0] + 0.587*c[1] + 0.114*c[2]; }
+
+  /* ---------- 折叠角度 ---------- */
+  function foldAngles(n, seed){
+    var out = [], s = Math.floor(seed*2654435761) % 233280;
+    for(var k=0;k<n;k++){
+      s = (s*9301 + 49297) % 233280;
+      var jitter = (s/233280 - 0.5) * 1.8;
+      out.push(jitter + k*0.55 + 0.2);
+    }
+    return out;
+  }
+
+  /* ---------- 纹样生成 ---------- */
+  var noiseTile = null;
+  function makeNoise(){
+    var c = document.createElement("canvas");
+    c.width = c.height = 96;
+    var g = c.getContext("2d");
+    var im = g.createImageData(96,96);
+    for(var i=0;i<im.data.length;i+=4){
+      var v = 128 + (Math.random()-0.5)*90;
+      im.data[i]=im.data[i+1]=im.data[i+2]=v;
+      im.data[i+3]=255;
+    }
+    g.putImageData(im,0,0);
+    return c;
+  }
+
+  function buildPattern(g, size){
+    var A = hex2rgb(PAIRS[S.pair].a);
+    var B = hex2rgb(PAIRS[S.pair].b);
+    var st = S.style;
+    var img = g.createImageData(size,size);
+    var d = img.data;
+
+    var angles = foldAngles(S.folds, S.seed);
+    var n = angles.length;
+    var ca = new Float32Array(n), sa = new Float32Array(n);
+    for(var i=0;i<n;i++){ ca[i]=Math.cos(angles[i]); sa[i]=Math.sin(angles[i]); }
+
+    var swirl = (st === "swirl");
+    var weave = (st === "weave");
+    var twist = swirl ? (S.twist/100*2.6 + 0.55) : (S.twist/100*1.4);
+    var dens = weave ? 0 : S.dens;
+    var cells = Math.max(6, Math.round(S.dens*0.55));
+    var soft = 0.0035;
+    var seedPh = (S.seed % 89) / 89;
+    var inv = 1/size;
+    var offX = (((S.seed*37) % 100)/100 - 0.5) * 0.34;
+    var offY = (((S.seed*53) % 100)/100 - 0.5) * 0.34;
+
+    for(var y=0;y<size;y++){
+      var ny = y*inv - 0.5;
+      var row = y*size*4;
+      for(var x=0;x<size;x++){
+        var nx = x*inv - 0.5;
+        var u = nx + offX, v = ny + offY;
+
+        if(twist > 0.001){
+          var r = Math.sqrt(u*u + v*v);
+          var a0 = twist*(1 - r*1.15);
+          var c0 = Math.cos(a0), s0 = Math.sin(a0);
+          var t1 = u*c0 - v*s0;
+          v = u*s0 + v*c0;
+          u = t1;
+        }
+
+        for(var k=0;k<n;k++){
+          var uu = u*ca[k] + v*sa[k];
+          var vv = -u*sa[k] + v*ca[k];
+          vv = Math.sqrt(vv*vv + soft)*0.94;
+          var u2 = uu*ca[k] - vv*sa[k];
+          v = uu*sa[k] + vv*ca[k];
+          u = u2;
+        }
+
+        v += 0.030*sinT(u*2.1 + seedPh*0.3);
+        u += 0.024*sinT(v*1.7 - seedPh*0.2);
+
+        var o = row + x*4;
+        var grain = ((x*13 + y*7 + ((x*y)&7)) & 7) - 3;
+
+        if(weave){
+          var cu = (u+0.5)*cells;
+          var cv = (v+0.5)*cells;
+          var iu = Math.floor(cu), iv = Math.floor(cv);
+          var fu = cu - iu, fv = cv - iv;
+          var isDark = (((iu + iv) & 1) === 0);
+          var base = isDark ? A : B;
+          var other = isDark ? B : A;
+          var edge = Math.min(Math.min(fu, 1-fu), Math.min(fv, 1-fv));
+          var m = edge < 0.055 ? (1 - edge/0.055) * 0.65 : 0;
+          d[o]   = base[0] + (other[0]-base[0])*m + grain*1.2;
+          d[o+1] = base[1] + (other[1]-base[1])*m + grain*1.2;
+          d[o+2] = base[2] + (other[2]-base[2])*m + grain*1.2;
+          d[o+3] = 255;
+        }else{
+          var tt = v*dens;
+          var f = tt - Math.floor(tt);
+          var e = 0.012 + 0.02*Math.min(1, Math.abs(v)*2.0);
+          var mixv;
+          if(f < 0.5-e) mixv = 0;
+          else if(f > 0.5+e) mixv = 1;
+          else { var q = (f-(0.5-e))/(2*e); mixv = q*q*(3-2*q); }
+          d[o]   = B[0] + (A[0]-B[0])*mixv + grain*1.0;
+          d[o+1] = B[1] + (A[1]-B[1])*mixv + grain*1.0;
+          d[o+2] = B[2] + (A[2]-B[2])*mixv + grain*1.0;
+          d[o+3] = 255;
+        }
+      }
+    }
+    g.putImageData(img,0,0);
+    glaze(g, size);
+  }
+
+  function glaze(g, w){
+    if(!noiseTile) noiseTile = makeNoise();
+    g.save();
+    g.globalAlpha = 0.09;
+    g.globalCompositeOperation = "overlay";
+    for(var y=0;y<w;y+=96){
+      for(var x=0;x<w;x+=96){ g.drawImage(noiseTile,x,y); }
+    }
+    g.globalCompositeOperation = "screen";
+    g.globalAlpha = 1;
+    var gr = g.createRadialGradient(w*0.30,w*0.22,10, w*0.30,w*0.22,w*0.95);
+    gr.addColorStop(0,"rgba(255,255,255,.18)");
+    gr.addColorStop(0.45,"rgba(255,255,255,.05)");
+    gr.addColorStop(1,"rgba(255,255,255,0)");
+    g.fillStyle = gr; g.fillRect(0,0,w,w);
+
+    g.globalCompositeOperation = "multiply";
+    var rg = g.createRadialGradient(w*0.5,w*0.5,w*0.30, w*0.5,w*0.5,w*0.80);
+    rg.addColorStop(0,"rgba(255,255,255,1)");
+    rg.addColorStop(1,"rgba(122,110,98,1)");
+    g.fillStyle = rg; g.fillRect(0,0,w,w);
+    g.restore();
+  }
+
+  /* ---------- 画布 ---------- */
+  var view = document.getElementById("view");
+  var vctx = view.getContext("2d");
+  var pat = document.createElement("canvas");
+  pat.width = pat.height = SIZE;
+  var pctx = pat.getContext("2d");
+
+  var QSIZE = 300;
+  var qcanvas = document.createElement("canvas");
+  qcanvas.width = qcanvas.height = QSIZE;
+  var qctx = qcanvas.getContext("2d");
+  var srcPat = pat;
+
+  var busy = document.getElementById("busy");
+  var raf = 0;
+
+  /* ---------- 器型 ---------- */
+  function vasePath(g,w,h){
+    var P = [
+      [0.500,0.070],[0.462,0.070],[0.446,0.096],[0.434,0.140],
+      [0.442,0.196],[0.472,0.252],[0.420,0.346],[0.306,0.506],
+      [0.212,0.664],[0.178,0.772],[0.200,0.870],[0.262,0.924],
+      [0.322,0.946],[0.352,0.952]
+    ];
+    var pts = [], i, j;
+    for(i=0;i<P.length;i++) pts.push([P[i][0]*w, P[i][1]*h]);
+    for(j=P.length-2;j>=0;j--) pts.push([(1-P[j][0])*w, P[j][1]*h]);
+    g.beginPath();
+    g.moveTo(pts[0][0], pts[0][1]);
+    for(var k=0;k<pts.length;k++){
+      var p1 = pts[k];
+      var p2 = pts[(k+1)%pts.length];
+      var mx = (p1[0]+p2[0])/2, my = (p1[1]+p2[1])/2;
+      g.quadraticCurveTo(p1[0],p1[1],mx,my);
+    }
+    g.closePath();
+  }
+
+  function drawVessel(src){
+    var w = SIZE, h = SIZE;
+    vctx.clearRect(0,0,w,h);
+    vctx.fillStyle = "#efe8dc";
+    vctx.fillRect(0,0,w,h);
+
+    vctx.save();
+    if(vctx.filter !== undefined) vctx.filter = "blur(16px)";
+    vctx.globalAlpha = 0.20;
+    vctx.fillStyle = "#3a2f26";
+    vctx.beginPath();
+    vctx.ellipse(w*0.5, h*0.958, w*0.24, h*0.024, 0, 0, 6.283);
+    vctx.fill();
+    vctx.restore();
+
+    vctx.save();
+    vasePath(vctx,w,h);
+    vctx.clip();
+    vctx.drawImage(src,0,0,SIZE,SIZE);
+
+    var lg = vctx.createLinearGradient(0,0,w,0);
+    lg.addColorStop(0.00,"rgba(28,22,16,.66)");
+    lg.addColorStop(0.10,"rgba(28,22,16,.28)");
+    lg.addColorStop(0.32,"rgba(255,255,255,.16)");
+    lg.addColorStop(0.46,"rgba(255,255,255,.02)");
+    lg.addColorStop(0.72,"rgba(28,22,16,.14)");
+    lg.addColorStop(1.00,"rgba(28,22,16,.70)");
+    vctx.fillStyle = lg; vctx.fillRect(0,0,w,h);
+
+    var vg = vctx.createLinearGradient(0,0,0,h);
+    vg.addColorStop(0.00,"rgba(20,16,12,.44)");
+    vg.addColorStop(0.10,"rgba(20,16,12,.05)");
+    vg.addColorStop(0.80,"rgba(20,16,12,0)");
+    vg.addColorStop(1.00,"rgba(20,16,12,.48)");
+    vctx.fillStyle = vg; vctx.fillRect(0,0,w,h);
+
+    var hg = vctx.createLinearGradient(w*0.26,0,w*0.46,0);
+    hg.addColorStop(0,"rgba(255,255,255,0)");
+    hg.addColorStop(0.5,"rgba(255,255,255,.20)");
+    hg.addColorStop(1,"rgba(255,255,255,0)");
+    vctx.fillStyle = hg; vctx.fillRect(w*0.2,0,w*0.4,h);
+    vctx.restore();
+
+    vctx.save();
+    vctx.strokeStyle = "rgba(40,32,25,.5)";
+    vctx.lineWidth = 1.2;
+    vasePath(vctx,w,h);
+    vctx.stroke();
+    vctx.restore();
+
+    // 瓶口
+    vctx.save();
+    vctx.beginPath();
+    vctx.ellipse(w*0.5, h*0.070, w*0.044, h*0.011, 0, 0, 6.283);
+    vctx.fillStyle = "rgba(24,19,15,.9)";
+    vctx.fill();
+    vctx.strokeStyle = "rgba(235,228,216,.5)";
+    vctx.lineWidth = 1;
+    vctx.stroke();
+    vctx.restore();
+  }
+
+  /* ---------- 渲染 ---------- */
+  function drawSrc(){
+    if(S.vessel){ drawVessel(srcPat); return; }
+    vctx.clearRect(0,0,SIZE,SIZE);
+    vctx.imageSmoothingEnabled = true;
+    vctx.drawImage(srcPat, 0, 0, SIZE, SIZE);
+  }
+
+  function render(kind){
+    if(raf) cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(function(){
+      if(kind === "quick"){
+        buildPattern(qctx, QSIZE);
+        srcPat = qcanvas;
+      }else{
+        buildPattern(pctx, SIZE);
+        srcPat = pat;
+      }
+      drawSrc();
+      updateMeta();
+      if(kind !== "quick") busy.classList.remove("on");
+    });
+  }
+
+  /* 松手后补一张全分辨率 */
+  ["foldN","twist","dens"].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.addEventListener("change", function(){ render("full"); });
+  });
+
+  /* ---------- 文案 ---------- */
+  function styleName(){
+    return S.style === "fold" ? "折纹" : S.style === "swirl" ? "旋纹" : "编织";
+  }
+  function serial(){
+    var n = Math.floor(S.seed*7919) % 90000 + 10000;
+    return "DJY-" + n;
+  }
+  function updateMeta(){
+    document.getElementById("serial").textContent = "编号 " + serial();
+    document.getElementById("kind").textContent = styleName() + " · " + S.folds + " 次绞揉";
+    document.getElementById("tag").textContent = "切片 · " + styleName();
+    document.getElementById("twistO").textContent = S.twist === 0 ? "未扭转" : S.twist + "°";
+    document.getElementById("densO").textContent = S.dens;
+    document.getElementById("foldNo").textContent = S.folds + " 次";
+  }
+
+  /* ---------- 交互 ---------- */
+  function setPressed(sel, el){
+    document.querySelectorAll(sel).forEach(function(o){ o.setAttribute("aria-pressed","false"); });
+    if(el) el.setAttribute("aria-pressed","true");
+  }
+
+  document.querySelectorAll("[data-style]").forEach(function(b){
+    b.addEventListener("click", function(){
+      setPressed("[data-style]", b);
+      var st = b.getAttribute("data-style");
+      if(st === "random"){
+        st = STYLES[Math.floor(Math.random()*STYLES.length)];
+        S.seed = Math.random()*1000;
+        S.folds = 2 + Math.floor(Math.random()*3);
+        S.twist = Math.floor(Math.random()*100);
+        S.dens = 16 + Math.floor(Math.random()*24);
+        document.getElementById("foldN").value = S.folds;
+        document.getElementById("twist").value = S.twist;
+        document.getElementById("dens").value = S.dens;
+        // 对应到具体样式按钮的高亮
+        setPressed("[data-style]", document.querySelector('[data-style="' + st + '"]'));
+      }
+      S.style = st;
+      render("full");
+    });
+  });
+
+  document.querySelectorAll("[data-pair]").forEach(function(b){
+    b.addEventListener("click", function(){
+      setPressed("[data-pair]", b);
+      S.pair = parseInt(b.getAttribute("data-pair"),10);
+      render("full");
+    });
+  });
+
+  document.getElementById("foldN").addEventListener("input", function(){
+    S.folds = parseInt(this.value,10); render("quick");
+  });
+  document.getElementById("twist").addEventListener("input", function(){
+    S.twist = parseInt(this.value,10); render("quick");
+  });
+  document.getElementById("dens").addEventListener("input", function(){
+    S.dens = parseInt(this.value,10); render("quick");
+  });
+
+  document.getElementById("again").addEventListener("click", function(){
+    S.seed = Math.random()*1000;
+    S.folds = 2 + Math.floor(Math.random()*3);
+    S.twist = Math.floor(Math.random()*100);
+    S.dens = 16 + Math.floor(Math.random()*24);
+    document.getElementById("foldN").value = S.folds;
+    document.getElementById("twist").value = S.twist;
+    document.getElementById("dens").value = S.dens;
+    render("full");
+  });
+
+  var vBtn = document.getElementById("vessel");
+  vBtn.addEventListener("click", function(){
+    S.vessel = !S.vessel;
+    vBtn.textContent = S.vessel ? "看纹样" : "看瓶身";
+    vBtn.classList.toggle("primary", S.vessel);
+    drawSrc();
+  });
+
+  /* ---------- 照片取色 ---------- */
+  function clayify(c, lo, hi, sat){
+    var L = lum(c)/255;
+    var target = lo + (hi-lo)*Math.min(1,Math.max(0,L));
+    var scale = (target*255)/Math.max(18, lum(c));
+    var out = [c[0]*scale, c[1]*scale, c[2]*scale];
+    var g = lum(out);
+    out = [g+(out[0]-g)*sat, g+(out[1]-g)*sat, g+(out[2]-g)*sat];
+    return [Math.max(0,Math.min(255,out[0])),
+            Math.max(0,Math.min(255,out[1])),
+            Math.max(0,Math.min(255,out[2]))];
+  }
+
+  document.getElementById("pick").addEventListener("click", function(){
+    document.getElementById("file").click();
+  });
+
+  document.getElementById("file").addEventListener("change", function(e){
+    var f = e.target.files && e.target.files[0];
+    if(!f) return;
+    var img = new Image();
+    img.onload = function(){
+      var c = document.createElement("canvas");
+      c.width = c.height = 48;
+      var g = c.getContext("2d");
+      g.drawImage(img,0,0,48,48);
+      var data = g.getImageData(0,0,48,48).data;
+      var pts = [];
+      for(var i=0;i<data.length;i+=4) pts.push([data[i],data[i+1],data[i+2]]);
+
+      var c1 = [18,16,14], c2 = [232,226,214];
+      for(var it=0; it<10; it++){
+        var s1=[0,0,0], n1=0, s2=[0,0,0], n2=0;
+        for(var p=0;p<pts.length;p++){
+          var q = pts[p];
+          var d1 = dist2(q,c1), d2 = dist2(q,c2);
+          if(d1<d2){ s1[0]+=q[0]; s1[1]+=q[1]; s1[2]+=q[2]; n1++; }
+          else { s2[0]+=q[0]; s2[1]+=q[1]; s2[2]+=q[2]; n2++; }
+        }
+        if(n1) c1 = [s1[0]/n1, s1[1]/n1, s1[2]/n1];
+        if(n2) c2 = [s2[0]/n2, s2[1]/n2, s2[2]/n2];
+      }
+      var dark  = lum(c1) < lum(c2) ? c1 : c2;
+      var light = lum(c1) < lum(c2) ? c2 : c1;
+      dark  = clayify(dark, 0.10, 0.26, 0.85);
+      light = clayify(light, 0.82, 0.95, 0.55);
+
+      var hexA = rgb2hex(dark), hexB = rgb2hex(light);
+      var b = document.createElement("button");
+      b.className = "sw";
+      b.style.setProperty("--a", hexA);
+      b.style.setProperty("--b", hexB);
+      b.title = "来自照片";
+      b.innerHTML = "<i></i>";
+      var idx = PAIRS.length;
+      PAIRS.push({a:hexA, b:hexB});
+      b.setAttribute("data-pair", String(idx));
+      b.addEventListener("click", function(){
+        setPressed("[data-pair]", b);
+        S.pair = idx; render("full");
+      });
+      var sw = document.getElementById("swatches");
+      sw.insertBefore(b, sw.querySelector(".sw-note") || document.getElementById("pick"));
+      S.pair = idx;
+      setPressed("[data-pair]", b);
+      render("full");
+    };
+    img.src = URL.createObjectURL(f);
+  });
+
+  function dist2(a,b){
+    var dx=a[0]-b[0], dy=a[1]-b[1], dz=a[2]-b[2];
+    return dx*dx+dy*dy+dz*dz;
+  }
+
+  /* ---------- 海报 ---------- */
+  document.getElementById("poster").addEventListener("click", function(){
+    var big = document.createElement("canvas");
+    big.width = big.height = 920;
+    buildPattern(big.getContext("2d"), 920);
+
+    var P = document.createElement("canvas");
+    P.width = 1080; P.height = 1440;
+    var g = P.getContext("2d");
+    g.fillStyle = "#f6f1e8"; g.fillRect(0,0,1080,1440);
+
+    g.fillStyle = "#8a7f72";
+    g.font = "24px 'Songti SC','SimSun',serif";
+    g.textAlign = "left";
+    g.fillText("当阳峪绞胎瓷 · 一瓷一品", 80, 116);
+    g.textAlign = "right";
+    g.fillText("河南 · 修武", 1000, 116);
+
+    g.strokeStyle = "#d8cec0"; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(80,148); g.lineTo(1000,148); g.stroke();
+
+    g.drawImage(big, 80, 184, 920, 920);
+
+    g.textAlign = "left";
+    g.fillStyle = "#1a1613";
+    g.font = "600 44px 'Songti SC','SimSun',serif";
+    g.fillText("此纹只此一条", 80, 1186);
+
+    g.fillStyle = "#4b423a";
+    g.font = "25px 'Songti SC','SimSun',serif";
+    g.fillText("编号 " + serial() + "　·　" + styleName() + "　·　" + S.folds + " 次绞揉", 80, 1238);
+
+    g.fillStyle = "#8a7f72";
+    g.font = "21px 'Songti SC','SimSun',serif";
+    g.fillText("AI 生成示意，非实物。纹样按绞胎的叠合·绞揉·切片模拟。", 80, 1312);
+    g.fillText("2026 年河南省职业院校技能大赛 · 新闻传播赛道", 80, 1352);
+
+    var url = P.toDataURL("image/jpeg", 0.92);
+    document.getElementById("posterImg").src = url;
+    var dl = document.getElementById("dl");
+    dl.href = url;
+    dl.setAttribute("download", "绞胎纹_" + serial() + ".jpg");
+    document.getElementById("sheet").classList.add("on");
+  });
+
+  document.getElementById("close").addEventListener("click", function(){
+    document.getElementById("sheet").classList.remove("on");
+  });
+  document.getElementById("sheet").addEventListener("click", function(e){
+    if(e.target === this) this.classList.remove("on");
+  });
+
+  /* ---------- 启动 ---------- */
+  busy.classList.add("on");
+  updateMeta();
+  render("full");
+})();
+</script>
+</body>
+</html>
